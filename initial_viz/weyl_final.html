@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>3D Weyl Chambers</title>
+		<style>
+			body { margin: 0; }
+			.label { /* Define the style for the labels of the spheres */
+				color: #FFF;
+				font-family: sans-serif;
+				padding: 0px;
+				background: rgba( 0, 0, 0, .5 );
+			}
+		</style>
+	</head>
+	<body>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./js/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+			//// SETUP OF THE SCENE
+
+			// imports
+			// you need to run a server or else the loaders will raise a same origin policy exception
+			// run http server with python 3 by going to this folder in the terminal,
+			// then typing: python -m http.server 8000
+			// then open the following website in your browser (best chrome): http://localhost:8000/
+			import * as THREE from 'three';
+			import { GUI } from './js/jsm/libs/lil-gui.module.min.js';
+            import { ParametricGeometry } from './js/jsm/geometries/ParametricGeometry.js';
+			import { OrbitControls } from './js/jsm/controls/OrbitControls.js';
+			import Stats from './js/jsm/libs/stats.module.js';
+			import { CSS2DRenderer, CSS2DObject } from './js/jsm/renderers/CSS2DRenderer.js'; // for labels
+
+			// stats about fps on the website (frames-per-second)
+			const stats = Stats();
+			document.body.appendChild( stats.dom );
+
+			// setup scene
+			const scene = new THREE.Scene();
+
+			// setup axes
+			const axesHelper = new THREE.AxesHelper( 5 );
+			axesHelper.layers.set(0); // set a layer, so that different object can later be shown selectively
+			scene.add(axesHelper);
+
+			// setup camera
+			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			camera.position.set( 0, 0, 5 );
+			camera.lookAt( 0, 0, 0 );
+			camera.layers.enableAll();
+
+			// setup renderer for 3D objects
+			const renderer = new THREE.WebGLRenderer();
+			renderer.outputEncoding = THREE.sRGBEncoding;
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+
+			// setup renderer for 2D objects (labels)
+			const labelRenderer = new CSS2DRenderer();
+			labelRenderer.setSize( window.innerWidth, window.innerHeight );
+			labelRenderer.domElement.style.position = 'absolute';
+			labelRenderer.domElement.style.top = '0px';
+			document.body.appendChild( labelRenderer.domElement );
+
+			// setup lights
+			const colour_white = 0xFFFFFF;
+			const intensity = 1;
+			const light_amb = new THREE.AmbientLight(colour_white, intensity);
+			light_amb.layers.enableAll();
+			scene.add(light_amb);
+
+			const light_dir = new THREE.DirectionalLight(colour_white, intensity);
+			light_dir.position.set(0, 10, 0);
+			light_dir.target.position.set(-5, 0, 0);
+			light_dir.layers.enableAll();
+			scene.add(light_dir);
+			scene.add(light_dir.target);
+
+			// setup controls, so that user can rotate and rescale
+			const orbit_controls = new OrbitControls( camera, labelRenderer.domElement );
+			orbit_controls.enableDamping = true;
+
+			// add function that will be executed in case the window needs resizing
+			window.addEventListener( 'resize', onWindowResize );
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				labelRenderer.setSize(window.innerWidth, window.innerHeight);
+			}
+
+
+			//// ADDING THE GEOMETRY DATA
+			// Basic definitions
+			const alpha1 = new THREE.Vector3(1, 0, 0);
+			const alpha2 = new THREE.Vector3(-1/2, Math.sqrt(3)/2, 0);
+			const alpha3 = new THREE.Vector3(0, -1/Math.sqrt(3), Math.sqrt(2/3));
+			const alpha12 = new THREE.Vector3();
+			const alpha23 = new THREE.Vector3();
+			const alpha123 = new THREE.Vector3();
+			alpha12.addVectors(alpha1, alpha2);
+			alpha23.addVectors(alpha2, alpha3);
+			alpha123.addVectors(alpha12, alpha3);
+
+			// Colours in hexadecimal notation
+			const colour_blue = 0x0000FF;
+			const colour_red = 0xFF0000;
+			const colour_silver = 0xC0C0C0;
+			const colour_grey = 0x808080;
+
+			// Colour pallette from colorbrewer2 (4-class set1)
+			const colour_brew_1 = 0x377eb8;
+			const colour_brew_2 = 0xe41a1c;
+			const colour_brew_3 = 0x4daf4a;
+
+			// Create function to add spheres
+			var createSphereAt = function (coord, col, do_negation, label) {
+				const rad_spheres = 0.1; // radius of the spheres
+				const n_hor_segs = 32; // number of horizontal segments of the sphere
+				const n_vert_segs = 16; // number of horizontal segments of the sphere
+				const vert_label_offset = 1.5 * rad_spheres; // vertical offest of labels (labels will hover over the spheres)
+
+				// possible negate/invert the vector
+				if (do_negation == true) {
+					coord.negate();
+				}
+
+		        // create mesh
+		        var mesh = new THREE.Mesh(
+		                // add sphere
+		                new THREE.SphereGeometry(rad_spheres, n_hor_segs, n_vert_segs),
+		                // standard material
+		                // new THREE.MeshStandardMaterial({
+		                //     color: col
+		                // })
+						// advanced material
+						new THREE.MeshPhysicalMaterial({
+							metalness: 0.5,
+							roughness: 0.5,
+							clearcoat: 1.0,
+							color: col
+						})
+
+					);
+		        mesh.position.set(coord.x, coord.y, coord.z); // set correct position of the spheres
+				mesh.layers.set(1); // set a layer, so that different object can later be shown selectively
+
+				// add label
+				const thisDiv = document.createElement('div');
+				thisDiv.className = 'label';
+				thisDiv.textContent = label;
+				thisDiv.style.marginTop = '-1em';
+
+				const thisLabel = new CSS2DObject(thisDiv);
+				thisLabel.position.set(0, 0, vert_label_offset); // the position is relative to the position of the mesh, not the origin
+				thisLabel.layers.set(2); // set a layer, so that different object can later be shown selectively
+				mesh.add(thisLabel);
+
+		        return mesh;
+		    };
+
+			// Add a sphere in position of alpha1, alpha2, alpha3
+			scene.add(createSphereAt(alpha1, colour_brew_2, false, '1'));
+			scene.add(createSphereAt(alpha2, colour_brew_2, false, '2'));
+			scene.add(createSphereAt(alpha3, colour_brew_2, false, '3'));
+
+			// Add spheres for some sums of vectors, and their negatives
+			scene.add(createSphereAt(alpha12, colour_brew_3, false, '12'));
+			scene.add(createSphereAt(alpha23, colour_brew_3, false, '23'));
+			scene.add(createSphereAt(alpha123, colour_brew_3, false, '123'));
+
+			scene.add(createSphereAt(alpha1, colour_brew_3, true, '-1'));
+			scene.add(createSphereAt(alpha2, colour_brew_3, true, '-2'));
+			scene.add(createSphereAt(alpha3, colour_brew_3, true, '-3'));
+			scene.add(createSphereAt(alpha12, colour_brew_3, true, '-12'));
+			scene.add(createSphereAt(alpha23, colour_brew_3, true, '-23'));
+			scene.add(createSphereAt(alpha123, colour_brew_3, true, '-123'));
+
+			// Create function to add cylinders (conncecting the origin to the spheres)
+			var createCylinderAt = function (coord, col, do_negation) {
+				const rad_cyl = 0.02; // radius of the cylinders
+				const n_rad_segs = 8; // number of radial segments of the cylinder
+				const n_height_segs = 1; // number of height segments of the cylinder
+
+				// possible negate/invert the vector
+				if (do_negation == true) {
+					coord.negate();
+				}
+
+				// create mesh
+				var mesh = new THREE.Mesh(
+						// add cylinder
+						new THREE.CylinderGeometry(rad_cyl, rad_cyl, coord.length(), n_rad_segs, n_height_segs),
+						// standard material
+						// new THREE.MeshStandardMaterial({
+						//     color: col
+						// })
+						// advanced material
+						new THREE.MeshPhysicalMaterial({
+							metalness: 0.5,
+							roughness: 0.5,
+							clearcoat: 1.0,
+							color: col
+						})
+
+					);
+
+				mesh.position.set(-0.5*coord.x, -0.5*coord.y, -0.5*coord.z); // set correct position of the cylinder
+				const quaternion = new THREE.Quaternion(); // then rotate the cylinder correctly
+				const stickAxis = coord.clone();
+				stickAxis.normalize();
+		        const cylinderUpAxis = new THREE.Vector3(0, 1, 0);
+		        quaternion.setFromUnitVectors(cylinderUpAxis, stickAxis);
+		        mesh.applyQuaternion(quaternion);
+				mesh.layers.set(1); // set a layer, so that different object can later be shown selectively
+
+				return mesh;
+			};
+
+			// Add cylinders conncecting the origin to the spheres
+			scene.add(createCylinderAt(alpha1, colour_brew_1, false));
+			scene.add(createCylinderAt(alpha2, colour_brew_1, false));
+			scene.add(createCylinderAt(alpha3, colour_brew_1, false));
+			scene.add(createCylinderAt(alpha12, colour_brew_1, false));
+			scene.add(createCylinderAt(alpha23, colour_brew_1, false));
+			scene.add(createCylinderAt(alpha123, colour_brew_1, false));
+			scene.add(createCylinderAt(alpha1, colour_brew_1, true));
+			scene.add(createCylinderAt(alpha2, colour_brew_1, true));
+			scene.add(createCylinderAt(alpha3, colour_brew_1, true));
+			scene.add(createCylinderAt(alpha12, colour_brew_1, true));
+			scene.add(createCylinderAt(alpha23, colour_brew_1, true));
+			scene.add(createCylinderAt(alpha123, colour_brew_1, true));
+
+			// Create function to add planes (perpendicular to a vector and through origin)
+			var createPlaneAt = function (coord, col) {
+				const plane_size = 2.5; // width and height of plane
+				const n_width_segs = 2; // number of width segments of the plane
+				const n_height_segs = 2; // number of height segments of the plane
+
+				// create mesh
+				var mesh = new THREE.Mesh(
+						// add cylinder
+						new THREE.PlaneGeometry(plane_size, plane_size, n_width_segs, n_height_segs),
+						// standard material
+						// new THREE.MeshStandardMaterial({
+						//     color: col,
+						// 	   side: THREE.DoubleSide
+						// })
+						// advanced material
+						new THREE.MeshPhysicalMaterial({
+							metalness: 0.5,
+							roughness: 0.5,
+							clearcoat: 1.0,
+							color: col,
+							side: THREE.DoubleSide
+						})
+					);
+
+				const quaternion = new THREE.Quaternion(); // rotate the cylinder correctly
+				const stickAxis = coord.clone();
+				stickAxis.normalize();
+				const cylinderUpAxis = new THREE.Vector3(0, 0, 1);
+				quaternion.setFromUnitVectors(cylinderUpAxis, stickAxis);
+				mesh.applyQuaternion(quaternion);
+				mesh.layers.set(3); // set a layer, so that different object can later be shown selectively
+
+				return mesh;
+			};
+
+			// add planes that are perpendicular to the vectors and go through the origin
+			scene.add(createPlaneAt(alpha1, colour_brew_1));
+			scene.add(createPlaneAt(alpha2, colour_brew_1));
+			scene.add(createPlaneAt(alpha3, colour_brew_1));
+			scene.add(createPlaneAt(alpha12, colour_brew_1));
+			scene.add(createPlaneAt(alpha23, colour_brew_1));
+			scene.add(createPlaneAt(alpha123, colour_brew_1));
+
+
+			//// LAST SETUP AND DOING THE RENDERING
+			const layers = {
+				'Toggle Axes': function () {
+					camera.layers.toggle(0); // axes
+				},
+				'Toggle Points': function () {
+					camera.layers.toggle(1); // spheres and cylinders
+				},
+				'Toggle Labels': function () {
+					camera.layers.toggle(2); // labels of the spheres
+				},
+				'Toggle Planes': function () {
+					camera.layers.toggle(3); // planes
+				},
+				'Enable All': function () {
+					camera.layers.enableAll();
+				},
+				'Disable All': function () {
+					camera.layers.disableAll();
+				}
+			};
+
+			// add GUI (controls for intensity of the two different lights, and
+			// toggles for the mesh objects)
+			let gui, controls;
+			gui = new GUI();
+			gui.add(light_amb, 'intensity', 0, 2, 0.01).name('intensity ambient');
+			gui.add(light_dir, 'intensity', 0, 2, 0.01).name('intensity directional');
+			gui.add(layers, 'Toggle Axes').name('toggle axes');
+			gui.add(layers, 'Toggle Labels').name('toggle labels');
+			gui.add(layers, 'Toggle Points').name('toggle points');
+			gui.add(layers, 'Toggle Planes').name('toggle planes');
+			gui.add(layers, 'Enable All').name('enable all');
+			gui.add(layers, 'Disable All').name('disable all');
+
+
+			// render the scene, 
+			var animate = function() {
+				requestAnimationFrame(animate);
+				renderer.render(scene, camera);
+				labelRenderer.render(scene, camera);
+				stats.update()
+			}
+
+			animate();
+		</script>
+	</body>
+</html>
