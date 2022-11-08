@@ -1,0 +1,32 @@
+#switch-panel
+    position: absolute
+    right: 16px
+    top: 16px
+    padding: 12px
+    box-sizing: border-box
+    height: max-content
+    background-color: white
+    border-radius: 8px
+    shadow: var(--light-shadow)
+    display: grid
+    align-content: flex-start
+    justify-content: center
+    #root-systems-container
+        display: grid
+        grid-template-columns: 1fr 1fr
+        grid-gap: 8px
+        .root-system-item
+            padding: 8px
+            border: var(--border-thin)
+            border-radius: 4px
+            display: grid
+            justify-content: center
+            align-content: center
+            transition: 150ms all ease-in-out
+            cursor: pointer
+            
+            &:hover
+                background-color: var(--purple-light)
+                
+            .root-system-image
+                width: 42px
