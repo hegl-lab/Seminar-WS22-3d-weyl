@@ -1,0 +1,61 @@
+<div id="transform-panel" *ngIf="visible()">
+    <div>
+    <h3 id="heading">S3 Group</h3>
+    <h5 class="subheading">Multiply with: </h5>
+    <div id="multiply-selection-section">
+        <div class="group-element"
+        (click)="multiplyBy(S3Element.s1)"
+        [style.background-color]="getColorToElement(S3Element.s1)">
+            S1
+        </div>
+        <div
+        (click)="multiplyBy(S3Element.s2)"
+        class="group-element" [style.background-color]="getColorToElement(S3Element.s2)">
+            S2
+        </div>
+        <div
+        (click)="multiplyBy(S3Element.s3)"
+
+        class="group-element" [style.background-color]="getColorToElement(S3Element.s3)">
+            S3
+        </div>
+        <div
+        (click)="multiplyBy(S3Element.e)"
+
+        class="group-element" [style.background-color]="getColorToElement(S3Element.e)">
+            E
+        </div>
+        <div
+        (click)="multiplyBy(S3Element.d)"
+        class="group-element" [style.background-color]="getColorToElement(S3Element.d)">
+            D
+        </div>
+        <div
+        (click)="multiplyBy(S3Element.d2)"
+        class="group-element" [style.background-color]="getColorToElement(S3Element.d2)">
+            D&#178;
+        </div>
+    </div>
+    <h5 class="subheading">Current Transformation: </h5>
+    <div id="current-transformation-container">
+        <div class="group-element" [style.background-color]="getColorToElement(currentElement)">
+            <span *ngIf="getStringToElement(currentElement) == 'D2'">D&#178;</span>
+            <span *ngIf="getStringToElement(currentElement) != 'D2'">{{getStringToElement(currentElement)}}</span>
+        </div>
+        <p id="equal-sign">=</p>
+        <div id="multiplierContainer">
+        <div
+        *ngFor="let element of appliedTransformations"
+        class="group-element"
+        [style.background-color]="getColorToElement(element)">
+            <!-- To render the two higher-->
+            <span *ngIf="getStringToElement(element) == 'D2'">D&#178;</span>
+            <span *ngIf="getStringToElement(element) != 'D2'">{{getStringToElement(element)}}</span>
+        </div></div>
+    </div>
+    <button id="reset-button" (click)="resetTransformation()">Reset</button>
+    </div>
+    <div>
+        <img src="assets/triangleS3.svg" id="triangle-image">
+    </div>
+</div>
